@@ -3,15 +3,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Your computer's local WiFi IP address + backend port.
 // Your phone and laptop must be on the SAME WiFi network for this to work.
-const BASE_URL = 'http://192.168.1.7:5000/api';
+   const BASE_URL = 'https://1278-2402-d000-8130-2468-5dbd-caeb-83e0-c60c.ngrok-free.app/api';
 
-const api = axios.create({
-  baseURL: BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  timeout: 10000,
-});
+   const api = axios.create({
+     baseURL: BASE_URL,
+     headers: {
+       'Content-Type': 'application/json',
+       'ngrok-skip-browser-warning': 'true',
+     },
+     timeout: 10000,
+   });
 
 // Automatically attaches the saved JWT to every outgoing request
 api.interceptors.request.use(
