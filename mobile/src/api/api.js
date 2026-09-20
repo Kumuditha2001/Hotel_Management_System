@@ -1,18 +1,16 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Your computer's local WiFi IP address + backend port.
-// Your phone and laptop must be on the SAME WiFi network for this to work.
-     const BASE_URL = 'https://36c8-2402-d000-8130-2852-a125-549a-219f-3bb5.ngrok-free.app/api';
+// Permanent deployed backend URL - works from any network, anywhere.
+const BASE_URL = 'https://hotel-management-system-di9f.onrender.com/api';
 
-   const api = axios.create({
-     baseURL: BASE_URL,
-     headers: {
-       'Content-Type': 'application/json',
-       'ngrok-skip-browser-warning': 'true',
-     },
-     timeout: 10000,
-   });
+const api = axios.create({
+  baseURL: BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  timeout: 15000,
+});
 
 // Automatically attaches the saved JWT to every outgoing request
 api.interceptors.request.use(
