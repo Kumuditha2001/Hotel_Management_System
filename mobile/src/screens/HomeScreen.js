@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';import { useAuth } from '../context/AuthContext';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '../context/AuthContext';
 
-export default function HomeScreen() {
+export default function HomeScreen({ navigation }) {
   const { user, logout } = useAuth();
 
   return (
@@ -14,6 +15,14 @@ export default function HomeScreen() {
         if a user exists in AuthContext - that's how protected routes work
         on the mobile side.
       </Text>
+
+      <TouchableOpacity
+        style={styles.roomsButton}
+        onPress={() => navigation.navigate('RoomList')}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.roomsButtonText}>View Rooms</Text>
+      </TouchableOpacity>
 
       <TouchableOpacity style={styles.button} onPress={logout} activeOpacity={0.8}>
         <Text style={styles.buttonText}>Log Out</Text>
@@ -47,6 +56,14 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 32,
   },
+  roomsButton: {
+    backgroundColor: '#2563eb',
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  roomsButtonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
   button: {
     backgroundColor: '#e53e3e',
     borderRadius: 10,

@@ -7,6 +7,9 @@ import { useAuth } from '../context/AuthContext';
 import LoginScreen from '../screens/LoginScreen';
 import SignupScreen from '../screens/SignupScreen';
 import HomeScreen from '../screens/HomeScreen';
+import RoomListScreen from '../screens/RoomListScreen';
+import RoomDetailScreen from '../screens/RoomDetailScreen';
+import RoomFormScreen from '../screens/RoomFormScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -23,13 +26,18 @@ export default function AppNavigator() {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Navigator screenOptions={{ headerShown: true }}>
         {user ? (
-          <Stack.Screen name="Home" component={HomeScreen} />
+          <>
+            <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="RoomList" component={RoomListScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="RoomDetail" component={RoomDetailScreen} options={{ title: 'Room Details' }} />
+            <Stack.Screen name="RoomForm" component={RoomFormScreen} options={{ title: 'Room Form' }} />
+          </>
         ) : (
           <>
-            <Stack.Screen name="Login" component={LoginScreen} />
-            <Stack.Screen name="Signup" component={SignupScreen} />
+            <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="Signup" component={SignupScreen} options={{ headerShown: false }} />
           </>
         )}
       </Stack.Navigator>
