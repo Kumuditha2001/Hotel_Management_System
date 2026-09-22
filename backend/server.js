@@ -15,6 +15,9 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Serve uploaded images statically, e.g. http://localhost:5000/uploads/room-123.jpg
+app.use('/uploads', express.static('uploads'));
+
 app.get('/api/health', (req, res) => {
   res.status(200).json({ success: true, message: 'API is running' });
 });
