@@ -105,4 +105,31 @@ const deleteRoom = async (req, res, next) => {
   }
 };
 
-module.exports = { createRoom, getRooms, getRoomById, updateRoom, deleteRoom };
+// @route   POST /api/rooms/:id/upload-image
+// @access  Private/Admin
+// @desc    Upload an image for a specific room
+const uploadRoomImage = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No image file provided' });
+    }
+
+    const room = await Room.findById(req.params.id);
+    if (!room) {
+      return res.status(404).json({ success: false, message: 'Room not found' });
+    }
+
+    // Build the public URL where this image can be viewed
+    // e.g. https://hotel-management-system-di9f.onrender.com/uploads/room-1695300000000.jpg
+    const imageUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+
+    room.image = imageUrl;
+    await room.save();
+
+    res.status(200).json({ success: true, message: 'Image uploaded successfully', room });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { createRoom, getRooms, getRoomById, updateRoom, deleteRoom, uploadRoomImage };
