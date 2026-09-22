@@ -24,6 +24,14 @@ export default function HomeScreen({ navigation }) {
         <Text style={styles.roomsButtonText}>View Rooms</Text>
       </TouchableOpacity>
 
+      <TouchableOpacity
+        style={styles.bookingsButton}
+        onPress={() => navigation.navigate('MyBookings')}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.bookingsButtonText}>My Bookings</Text>
+      </TouchableOpacity>
+
       <TouchableOpacity style={styles.button} onPress={logout} activeOpacity={0.8}>
         <Text style={styles.buttonText}>Log Out</Text>
       </TouchableOpacity>
@@ -63,6 +71,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
+  bookingsButton: {
+  backgroundColor: '#16a34a',
+  borderRadius: 10,
+  paddingVertical: 14,
+  alignItems: 'center',
+  marginBottom: 12,
+},
+  bookingsButtonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
   roomsButtonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
   button: {
     backgroundColor: '#e53e3e',

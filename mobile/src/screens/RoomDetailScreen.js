@@ -1,9 +1,19 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '../context/AuthContext';
+import api from '../api/api';
 
 export default function RoomDetailScreen({ navigation, route }) {
   const { room } = route.params;
+  const { user } = useAuth();
+  const [booking, setBooking] = useState(false);
+
+  const isFull = room.availabilityStatus === 'Full';
+
+  const handleBookRoom = () => {
+    navigation.navigate('BookingForm', { room });
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -46,13 +56,27 @@ export default function RoomDetailScreen({ navigation, route }) {
           </View>
         ) : null}
 
-        <TouchableOpacity
-          style={styles.editButton}
-          onPress={() => navigation.navigate('RoomForm', { room })}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.editButtonText}>Edit Room</Text>
-        </TouchableOpacity>
+        {!isFull && (
+          <TouchableOpacity style={styles.bookButton} onPress={handleBookRoom} activeOpacity={0.8}>
+            <Text style={styles.bookButtonText}>Book this Room</Text>
+          </TouchableOpacity>
+        )}
+
+        {isFull && (
+          <View style={styles.fullNotice}>
+            <Text style={styles.fullNoticeText}>This room is currently full</Text>
+          </View>
+        )}
+
+        {user?.role === 'admin' && (
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={() => navigation.navigate('RoomForm', { room })}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.editButtonText}>Edit Room</Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -85,12 +109,28 @@ const styles = StyleSheet.create({
   value: { fontSize: 14, fontWeight: '600', color: '#1a1a1a' },
   descriptionBox: { marginTop: 16 },
   description: { fontSize: 14, color: '#333', marginTop: 6, lineHeight: 20 },
+  bookButton: {
+    backgroundColor: '#16a34a',
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 32,
+  },
+  bookButtonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
+  fullNotice: {
+    backgroundColor: '#fee2e2',
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 32,
+  },
+  fullNoticeText: { color: '#b91c1c', fontWeight: '600', fontSize: 14 },
   editButton: {
     backgroundColor: '#2563eb',
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',
-    marginTop: 32,
+    marginTop: 12,
   },
   editButtonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
 });
