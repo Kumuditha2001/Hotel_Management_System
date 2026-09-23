@@ -10,13 +10,15 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Image,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import api from '../api/api';
 
 const ROOM_TYPES = ['Single', 'Double', 'Triple'];
 
 export default function RoomFormScreen({ navigation, route }) {
-  const editingRoom = route.params?.room; // if present, we're editing, not creating
+  const editingRoom = route.params?.room;
   const isEditMode = !!editingRoom;
 
   const [roomNumber, setRoomNumber] = useState(editingRoom?.roomNumber || '');
@@ -26,13 +28,15 @@ export default function RoomFormScreen({ navigation, route }) {
   );
   const [capacity, setCapacity] = useState(editingRoom ? String(editingRoom.capacity) : '');
   const [description, setDescription] = useState(editingRoom?.description || '');
+  const [imageUri, setImageUri] = useState(null); // local picked image, not yet uploaded
+  const [existingImageUrl, setExistingImageUrl] = useState(editingRoom?.image || '');
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [serverError, setServerError] = useState('');
 
   const validate = () => {
     const newErrors = {};
-
     if (!roomNumber.trim()) newErrors.roomNumber = 'Room number is required';
     if (!pricePerMonth || isNaN(pricePerMonth) || Number(pricePerMonth) <= 0) {
       newErrors.pricePerMonth = 'Enter a valid price';
@@ -40,9 +44,51 @@ export default function RoomFormScreen({ navigation, route }) {
     if (!capacity || isNaN(capacity) || Number(capacity) <= 0) {
       newErrors.capacity = 'Enter a valid capacity';
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  // Opens the phone's photo gallery and lets the admin pick one image
+  const pickImage = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permission needed', 'Please allow photo library access to upload a room image.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.7, // compress a bit to keep uploads fast and under the 5MB limit
+    });
+
+    if (!result.canceled) {
+      setImageUri(result.assets[0].uri);
+    }
+  };
+
+  // Uploads the picked image to the backend for a given room ID
+  const uploadImage = async (roomId) => {
+    if (!imageUri) return; // nothing new picked, skip
+
+    setUploadingImage(true);
+    try {
+      const formData = new FormData();
+      const filename = imageUri.split('/').pop();
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : 'image/jpeg';
+
+      formData.append('image', { uri: imageUri, name: filename, type });
+
+      await api.post(`/rooms/${roomId}/upload-image`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+    } catch (error) {
+      Alert.alert('Image upload failed', error.response?.data?.message || 'Please try again.');
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -59,15 +105,23 @@ export default function RoomFormScreen({ navigation, route }) {
     };
 
     try {
+      let roomId;
       if (isEditMode) {
-        await api.put(`/rooms/${editingRoom._id}`, payload);
+        const response = await api.put(`/rooms/${editingRoom._id}`, payload);
+        roomId = response.data.room._id;
       } else {
-        await api.post('/rooms', payload);
+        const response = await api.post('/rooms', payload);
+        roomId = response.data.room._id;
       }
+
+      // If the admin picked a new image, upload it right after the room is saved
+      if (imageUri) {
+        await uploadImage(roomId);
+      }
+
       navigation.goBack();
     } catch (error) {
-      const message =
-        error.response?.data?.message || 'Something went wrong. Please try again.';
+      const message = error.response?.data?.message || 'Something went wrong. Please try again.';
       setServerError(message);
     } finally {
       setLoading(false);
@@ -94,12 +148,27 @@ export default function RoomFormScreen({ navigation, route }) {
     ]);
   };
 
+  // Decide what image to preview: a freshly-picked local one takes priority,
+  // otherwise show the room's existing uploaded image if editing
+  const previewUri = imageUri || existingImageUrl || null;
+
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>{isEditMode ? 'Edit Room' : 'Add Room'}</Text>
 
         {serverError ? <Text style={styles.serverError}>{serverError}</Text> : null}
+
+        <View style={styles.field}>
+          <Text style={styles.label}>Room Photo</Text>
+          <TouchableOpacity style={styles.imagePicker} onPress={pickImage} activeOpacity={0.8}>
+            {previewUri ? (
+              <Image source={{ uri: previewUri }} style={styles.imagePreview} />
+            ) : (
+              <Text style={styles.imagePickerText}>Tap to select a photo</Text>
+            )}
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.field}>
           <Text style={styles.label}>Room Number</Text>
@@ -165,8 +234,13 @@ export default function RoomFormScreen({ navigation, route }) {
           />
         </View>
 
-        <TouchableOpacity style={styles.button} onPress={handleSubmit} disabled={loading} activeOpacity={0.8}>
-          {loading ? (
+        <TouchableOpacity
+          style={styles.button}
+          onPress={handleSubmit}
+          disabled={loading || uploadingImage}
+          activeOpacity={0.8}
+        >
+          {loading || uploadingImage ? (
             <ActivityIndicator color="#fff" />
           ) : (
             <Text style={styles.buttonText}>{isEditMode ? 'Save Changes' : 'Create Room'}</Text>
@@ -189,6 +263,18 @@ const styles = StyleSheet.create({
   title: { fontSize: 24, fontWeight: '700', color: '#1a1a1a', marginBottom: 20 },
   field: { marginBottom: 16 },
   label: { fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 6 },
+  imagePicker: {
+    height: 160,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 10,
+    backgroundColor: '#fafafa',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  imagePreview: { width: '100%', height: '100%' },
+  imagePickerText: { color: '#999', fontSize: 14 },
   input: {
     borderWidth: 1,
     borderColor: '#ddd',
