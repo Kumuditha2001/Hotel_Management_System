@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Alert, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/api';
@@ -18,6 +18,10 @@ export default function RoomDetailScreen({ navigation, route }) {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
+        {room.image ? (
+          <Image source={{ uri: room.image }} style={styles.detailImage} />
+        ) : null}
+
         <View style={styles.headerRow}>
           <Text style={styles.roomNumber}>Room {room.roomNumber}</Text>
           <View
@@ -85,6 +89,12 @@ export default function RoomDetailScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   content: { padding: 24 },
+  detailImage: {
+    width: '100%',
+    height: 220,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

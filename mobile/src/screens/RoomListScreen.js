@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../api/api';
@@ -50,6 +51,9 @@ export default function RoomListScreen({ navigation }) {
       onPress={() => navigation.navigate('RoomDetail', { room: item })}
       activeOpacity={0.7}
     >
+      {item.image ? (
+        <Image source={{ uri: item.image }} style={styles.cardImage} />
+      ) : null}
       <View style={styles.cardHeader}>
         <Text style={styles.roomNumber}>Room {item.roomNumber}</Text>
         <View
@@ -124,6 +128,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: '#eee',
+  },
+  cardImage: {
+    width: '100%',
+    height: 140,
+    borderRadius: 10,
+    marginBottom: 10,
   },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   roomNumber: { fontSize: 18, fontWeight: '700', color: '#1a1a1a' },

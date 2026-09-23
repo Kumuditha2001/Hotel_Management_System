@@ -28,7 +28,7 @@ export default function RoomFormScreen({ navigation, route }) {
   );
   const [capacity, setCapacity] = useState(editingRoom ? String(editingRoom.capacity) : '');
   const [description, setDescription] = useState(editingRoom?.description || '');
-  const [imageUri, setImageUri] = useState(null); // local picked image, not yet uploaded
+  const [imageUri, setImageUri] = useState(null);
   const [existingImageUrl, setExistingImageUrl] = useState(editingRoom?.image || '');
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -48,7 +48,6 @@ export default function RoomFormScreen({ navigation, route }) {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Opens the phone's photo gallery and lets the admin pick one image
   const pickImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
@@ -57,10 +56,10 @@ export default function RoomFormScreen({ navigation, route }) {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 0.7, // compress a bit to keep uploads fast and under the 5MB limit
+      quality: 0.7,
     });
 
     if (!result.canceled) {
@@ -68,9 +67,8 @@ export default function RoomFormScreen({ navigation, route }) {
     }
   };
 
-  // Uploads the picked image to the backend for a given room ID
   const uploadImage = async (roomId) => {
-    if (!imageUri) return; // nothing new picked, skip
+    if (!imageUri) return;
 
     setUploadingImage(true);
     try {
@@ -114,7 +112,6 @@ export default function RoomFormScreen({ navigation, route }) {
         roomId = response.data.room._id;
       }
 
-      // If the admin picked a new image, upload it right after the room is saved
       if (imageUri) {
         await uploadImage(roomId);
       }
@@ -148,8 +145,6 @@ export default function RoomFormScreen({ navigation, route }) {
     ]);
   };
 
-  // Decide what image to preview: a freshly-picked local one takes priority,
-  // otherwise show the room's existing uploaded image if editing
   const previewUri = imageUri || existingImageUrl || null;
 
   return (
