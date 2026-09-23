@@ -1,32 +1,27 @@
 const multer = require('multer');
-const path = require('path');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const cloudinary = require('cloudinary').v2;
 
-// Configure where and how uploaded files are stored on disk
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/'); // saves into backend/uploads/
-  },
-  filename: (req, file, cb) => {
-    // e.g. room-1695300000000.jpg - unique name so files never overwrite each other
-    const uniqueSuffix = Date.now();
-    const ext = path.extname(file.originalname);
-    cb(null, `room-${uniqueSuffix}${ext}`);
+// Configure Cloudinary with credentials from .env
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+// Instead of saving files to local disk, this storage engine uploads
+// directly to Cloudinary and gives us back a permanent hosted URL.
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'hotel-management-rooms', // organizes uploads into a folder on Cloudinary
+    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+    transformation: [{ width: 1000, height: 750, crop: 'limit' }], // auto-resize large images
   },
 });
 
-// Only allow image files, reject anything else
-const fileFilter = (req, file, cb) => {
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
-  if (allowedTypes.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new Error('Only image files (jpg, jpeg, png, webp) are allowed'), false);
-  }
-};
-
 const upload = multer({
   storage,
-  fileFilter,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
 });
 
