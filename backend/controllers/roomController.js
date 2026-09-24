@@ -119,11 +119,9 @@ const uploadRoomImage = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Room not found' });
     }
 
-    // Build the public URL where this image can be viewed
-    // e.g. https://hotel-management-system-di9f.onrender.com/uploads/room-1695300000000.jpg
-    const imageUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
-
-    room.image = imageUrl;
+    // Cloudinary's storage engine already uploaded the file and gives us
+    // the permanent hosted URL directly on req.file.path
+    room.image = req.file.path;
     await room.save();
 
     res.status(200).json({ success: true, message: 'Image uploaded successfully', room });
