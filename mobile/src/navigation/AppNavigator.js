@@ -12,6 +12,7 @@ import RoomDetailScreen from '../screens/RoomDetailScreen';
 import RoomFormScreen from '../screens/RoomFormScreen';
 import BookingFormScreen from '../screens/BookingFormScreen';
 import MyBookingsScreen from '../screens/MyBookingsScreen';
+import BookingDetailScreen from '../screens/BookingDetailScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -37,6 +38,7 @@ export default function AppNavigator() {
             <Stack.Screen name="RoomForm" component={RoomFormScreen} options={{ title: 'Room Form' }} />
             <Stack.Screen name="BookingForm" component={BookingFormScreen} options={{ title: 'Book Room' }} />
             <Stack.Screen name="MyBookings" component={MyBookingsScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="BookingDetail" component={BookingDetailScreen} options={{ title: 'Booking Details' }} />
           </>
         ) : (
           <>

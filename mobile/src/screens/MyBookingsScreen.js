@@ -95,7 +95,11 @@ export default function MyBookingsScreen({ navigation }) {
     const colors = STATUS_COLORS[item.status] || STATUS_COLORS.Pending;
 
     return (
-      <View style={styles.card}>
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() => navigation.navigate('BookingDetail', { bookingId: item._id })}
+        activeOpacity={0.7}
+      >
         <View style={styles.cardHeader}>
           <Text style={styles.roomLabel}>{roomLabel}</Text>
           <View style={[styles.badge, { backgroundColor: colors.bg }]}>
@@ -133,7 +137,7 @@ export default function MyBookingsScreen({ navigation }) {
             <Text style={styles.cancelLinkText}>Cancel Booking</Text>
           </TouchableOpacity>
         )}
-      </View>
+      </TouchableOpacity>
     );
   };
 

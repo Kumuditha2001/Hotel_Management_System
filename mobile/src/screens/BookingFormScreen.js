@@ -13,10 +13,20 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import api from '../api/api';
 
 export default function BookingFormScreen({ navigation, route }) {
-  const { room } = route.params;
+  // Create mode: route.params.room is passed (booking a fresh room)
+  // Edit mode: route.params.booking is passed (editing an existing Pending booking)
+  const room = route.params?.room;
+  const editingBooking = route.params?.booking;
+  const isEditMode = !!editingBooking;
 
-  const [startDate, setStartDate] = useState(new Date());
-  const [endDate, setEndDate] = useState(new Date());
+  const displayRoom = isEditMode ? editingBooking.roomId : room;
+
+  const [startDate, setStartDate] = useState(
+    isEditMode ? new Date(editingBooking.startDate) : new Date()
+  );
+  const [endDate, setEndDate] = useState(
+    isEditMode ? new Date(editingBooking.endDate) : new Date()
+  );
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
   const [errors, setErrors] = useState({});
@@ -27,7 +37,7 @@ export default function BookingFormScreen({ navigation, route }) {
     date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
   const onChangeStart = (event, selectedDate) => {
-    setShowStartPicker(Platform.OS === 'ios'); // iOS keeps picker open inline; Android closes it
+    setShowStartPicker(Platform.OS === 'ios');
     if (selectedDate) setStartDate(selectedDate);
   };
 
@@ -38,11 +48,9 @@ export default function BookingFormScreen({ navigation, route }) {
 
   const validate = () => {
     const newErrors = {};
-
     if (endDate <= startDate) {
       newErrors.endDate = 'End date must be after start date';
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -53,11 +61,18 @@ export default function BookingFormScreen({ navigation, route }) {
 
     setLoading(true);
     try {
-      await api.post('/bookings', {
-        roomId: room._id,
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-      });
+      if (isEditMode) {
+        await api.put(`/bookings/${editingBooking._id}`, {
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
+        });
+      } else {
+        await api.post('/bookings', {
+          roomId: room._id,
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
+        });
+      }
       navigation.navigate('MyBookings');
     } catch (error) {
       const message =
@@ -71,9 +86,12 @@ export default function BookingFormScreen({ navigation, route }) {
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>Book Room {room.roomNumber}</Text>
+        <Text style={styles.title}>
+          {isEditMode ? 'Edit Booking' : `Book Room ${displayRoom.roomNumber}`}
+        </Text>
         <Text style={styles.subtitle}>
-          {room.roomType} Room - Rs. {room.pricePerMonth.toLocaleString()}/month
+          {displayRoom.roomType} Room
+          {displayRoom.pricePerMonth ? ` - Rs. ${displayRoom.pricePerMonth.toLocaleString()}/month` : ''}
         </Text>
 
         {serverError ? <Text style={styles.serverError}>{serverError}</Text> : null}
@@ -115,7 +133,9 @@ export default function BookingFormScreen({ navigation, route }) {
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.buttonText}>Submit Booking Request</Text>
+            <Text style={styles.buttonText}>
+              {isEditMode ? 'Save Changes' : 'Submit Booking Request'}
+            </Text>
           )}
         </TouchableOpacity>
       </ScrollView>
