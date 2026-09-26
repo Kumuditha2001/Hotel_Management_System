@@ -43,10 +43,10 @@ const createBooking = async (req, res, next) => {
 
 // @route   PUT /api/bookings/:id
 // @access  Private (owner only, and only while status is Pending)
-// @desc    Update a booking's dates before it has been approved or rejected
+// @desc    Update a booking's room and/or dates before it has been approved or rejected
 const updateBookingDetails = async (req, res, next) => {
   try {
-    const { startDate, endDate } = req.body;
+    const { roomId, startDate, endDate } = req.body;
 
     const booking = await Booking.findById(req.params.id);
     if (!booking) {
@@ -58,7 +58,7 @@ const updateBookingDetails = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
-    // Once a booking has been approved or rejected, its dates can no longer be edited
+    // Once a booking has been approved or rejected, it can no longer be edited
     if (booking.status !== 'Pending') {
       return res.status(400).json({
         success: false,
@@ -66,10 +66,26 @@ const updateBookingDetails = async (req, res, next) => {
       });
     }
 
+    // If the student picked a different room, validate the new room the same way createBooking does
+    if (roomId && roomId !== booking.roomId.toString()) {
+      const newRoom = await Room.findById(roomId);
+      if (!newRoom) {
+        return res.status(404).json({ success: false, message: 'Selected room not found' });
+      }
+      if (newRoom.availabilityStatus === 'Full') {
+        return res.status(400).json({
+          success: false,
+          message: 'The selected room is currently full and not accepting new bookings',
+        });
+      }
+      booking.roomId = roomId;
+    }
+
     if (startDate) booking.startDate = startDate;
     if (endDate) booking.endDate = endDate;
 
     await booking.save();
+    await booking.populate('roomId', 'roomNumber roomType pricePerMonth');
 
     res.status(200).json({ success: true, message: 'Booking updated successfully', booking });
   } catch (error) {

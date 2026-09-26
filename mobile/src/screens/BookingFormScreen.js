@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,13 +13,17 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import api from '../api/api';
 
 export default function BookingFormScreen({ navigation, route }) {
-  // Create mode: route.params.room is passed (booking a fresh room)
+  // Create mode: route.params.room is passed (booking a specific room)
   // Edit mode: route.params.booking is passed (editing an existing Pending booking)
-  const room = route.params?.room;
+  const initialRoom = route.params?.room;
   const editingBooking = route.params?.booking;
   const isEditMode = !!editingBooking;
 
-  const displayRoom = isEditMode ? editingBooking.roomId : room;
+  const [rooms, setRooms] = useState([]);
+  const [loadingRooms, setLoadingRooms] = useState(true);
+  const [selectedRoom, setSelectedRoom] = useState(
+    isEditMode ? editingBooking.roomId : initialRoom
+  );
 
   const [startDate, setStartDate] = useState(
     isEditMode ? new Date(editingBooking.startDate) : new Date()
@@ -32,6 +36,21 @@ export default function BookingFormScreen({ navigation, route }) {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState('');
+
+  // Fetch all rooms so the student can pick or change the room
+  useEffect(() => {
+    const fetchRooms = async () => {
+      try {
+        const response = await api.get('/rooms');
+        setRooms(response.data.rooms);
+      } catch (err) {
+        console.log('Failed to load rooms', err);
+      } finally {
+        setLoadingRooms(false);
+      }
+    };
+    fetchRooms();
+  }, []);
 
   const formatDate = (date) =>
     date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -48,6 +67,9 @@ export default function BookingFormScreen({ navigation, route }) {
 
   const validate = () => {
     const newErrors = {};
+    if (!selectedRoom) {
+      newErrors.room = 'Please select a room';
+    }
     if (endDate <= startDate) {
       newErrors.endDate = 'End date must be after start date';
     }
@@ -63,12 +85,13 @@ export default function BookingFormScreen({ navigation, route }) {
     try {
       if (isEditMode) {
         await api.put(`/bookings/${editingBooking._id}`, {
+          roomId: selectedRoom._id,
           startDate: startDate.toISOString(),
           endDate: endDate.toISOString(),
         });
       } else {
         await api.post('/bookings', {
-          roomId: room._id,
+          roomId: selectedRoom._id,
           startDate: startDate.toISOString(),
           endDate: endDate.toISOString(),
         });
@@ -86,15 +109,46 @@ export default function BookingFormScreen({ navigation, route }) {
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>
-          {isEditMode ? 'Edit Booking' : `Book Room ${displayRoom.roomNumber}`}
-        </Text>
-        <Text style={styles.subtitle}>
-          {displayRoom.roomType} Room
-          {displayRoom.pricePerMonth ? ` - Rs. ${displayRoom.pricePerMonth.toLocaleString()}/month` : ''}
-        </Text>
+        <Text style={styles.title}>{isEditMode ? 'Edit Booking' : 'Book a Room'}</Text>
 
         {serverError ? <Text style={styles.serverError}>{serverError}</Text> : null}
+
+        <View style={styles.field}>
+          <Text style={styles.label}>Room</Text>
+          {loadingRooms ? (
+            <ActivityIndicator color="#2563eb" style={{ marginVertical: 12 }} />
+          ) : (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.roomScroll}>
+              {rooms.map((r) => {
+                const isSelected = selectedRoom && selectedRoom._id === r._id;
+                const isFull = r.availabilityStatus === 'Full' && !isSelected;
+                return (
+                  <TouchableOpacity
+                    key={r._id}
+                    style={[
+                      styles.roomCard,
+                      isSelected && styles.roomCardSelected,
+                      isFull && styles.roomCardDisabled,
+                    ]}
+                    onPress={() => !isFull && setSelectedRoom(r)}
+                    disabled={isFull}
+                  >
+                    <Text style={[styles.roomCardTitle, isSelected && styles.roomCardTitleSelected]}>
+                      Room {r.roomNumber}
+                    </Text>
+                    <Text style={[styles.roomCardSub, isSelected && styles.roomCardSubSelected]}>
+                      {r.roomType} - Rs. {r.pricePerMonth.toLocaleString()}
+                    </Text>
+                    <Text style={[styles.roomCardStatus, isFull && styles.roomCardStatusFull]}>
+                      {r.availabilityStatus}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          )}
+          {errors.room ? <Text style={styles.errorText}>{errors.room}</Text> : null}
+        </View>
 
         <View style={styles.field}>
           <Text style={styles.label}>Start Date</Text>
@@ -146,10 +200,27 @@ export default function BookingFormScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   container: { flexGrow: 1, padding: 24, backgroundColor: '#fff' },
-  title: { fontSize: 24, fontWeight: '700', color: '#1a1a1a', marginBottom: 4 },
-  subtitle: { fontSize: 14, color: '#666', marginBottom: 24 },
+  title: { fontSize: 24, fontWeight: '700', color: '#1a1a1a', marginBottom: 20 },
   field: { marginBottom: 16 },
-  label: { fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 6 },
+  label: { fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 8 },
+  roomScroll: { flexDirection: 'row' },
+  roomCard: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 10,
+    padding: 12,
+    marginRight: 10,
+    minWidth: 130,
+    backgroundColor: '#fafafa',
+  },
+  roomCardSelected: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
+  roomCardDisabled: { opacity: 0.4 },
+  roomCardTitle: { fontSize: 14, fontWeight: '700', color: '#1a1a1a' },
+  roomCardTitleSelected: { color: '#fff' },
+  roomCardSub: { fontSize: 11, color: '#666', marginTop: 4 },
+  roomCardSubSelected: { color: '#dbeafe' },
+  roomCardStatus: { fontSize: 10, color: '#16a34a', marginTop: 6, fontWeight: '600' },
+  roomCardStatusFull: { color: '#dc2626' },
   dateInput: {
     borderWidth: 1,
     borderColor: '#ddd',
