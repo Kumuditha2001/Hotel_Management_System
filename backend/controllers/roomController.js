@@ -5,7 +5,7 @@ const Room = require('../models/Room');
 // @desc    Create a new room
 const createRoom = async (req, res, next) => {
   try {
-    const { roomNumber, roomType, pricePerMonth, capacity, description, image } = req.body;
+    const { roomNumber, roomType, pricePerMonth, capacity, description } = req.body;
 
     if (!roomNumber || !roomType || !pricePerMonth || !capacity) {
       return res.status(400).json({
@@ -25,7 +25,6 @@ const createRoom = async (req, res, next) => {
       pricePerMonth,
       capacity,
       description,
-      image,
     });
 
     res.status(201).json({ success: true, message: 'Room created successfully', room });
@@ -105,13 +104,13 @@ const deleteRoom = async (req, res, next) => {
   }
 };
 
-// @route   POST /api/rooms/:id/upload-image
+// @route   POST /api/rooms/:id/upload-images
 // @access  Private/Admin
-// @desc    Upload an image for a specific room
-const uploadRoomImage = async (req, res, next) => {
+// @desc    Upload one or more images for a specific room (appends to existing images)
+const uploadRoomImages = async (req, res, next) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No image file provided' });
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ success: false, message: 'No image files provided' });
     }
 
     const room = await Room.findById(req.params.id);
@@ -119,15 +118,49 @@ const uploadRoomImage = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Room not found' });
     }
 
-    // Cloudinary's storage engine already uploaded the file and gives us
-    // the permanent hosted URL directly on req.file.path
-    room.image = req.file.path;
+    // Cloudinary's storage engine already uploaded each file; req.files gives us the
+    // permanent hosted URL for each one on the .path property
+    const newImageUrls = req.files.map((file) => file.path);
+
+    room.images = [...room.images, ...newImageUrls];
     await room.save();
 
-    res.status(200).json({ success: true, message: 'Image uploaded successfully', room });
+    res.status(200).json({ success: true, message: 'Images uploaded successfully', room });
   } catch (error) {
     next(error);
   }
 };
 
-module.exports = { createRoom, getRooms, getRoomById, updateRoom, deleteRoom, uploadRoomImage };
+// @route   DELETE /api/rooms/:id/images
+// @access  Private/Admin
+// @desc    Remove a single image URL from a room's images array
+const deleteRoomImage = async (req, res, next) => {
+  try {
+    const { imageUrl } = req.body;
+    if (!imageUrl) {
+      return res.status(400).json({ success: false, message: 'imageUrl is required' });
+    }
+
+    const room = await Room.findById(req.params.id);
+    if (!room) {
+      return res.status(404).json({ success: false, message: 'Room not found' });
+    }
+
+    room.images = room.images.filter((url) => url !== imageUrl);
+    await room.save();
+
+    res.status(200).json({ success: true, message: 'Image removed', room });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = {
+  createRoom,
+  getRooms,
+  getRoomById,
+  updateRoom,
+  deleteRoom,
+  uploadRoomImages,
+  deleteRoomImage,
+};

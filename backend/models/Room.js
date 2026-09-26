@@ -33,9 +33,9 @@ const roomSchema = new mongoose.Schema(
       trim: true,
       default: '',
     },
-    image: {
-      type: String, // will store the image URL once Member 6 adds upload
-      default: '',
+    images: {
+      type: [String], // array of Cloudinary URLs, supports multiple photos per room
+      default: [],
     },
     availabilityStatus: {
       type: String,
