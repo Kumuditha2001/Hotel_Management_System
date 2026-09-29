@@ -40,8 +40,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Called from SignupScreen
-  const register = async (name, email, password) => {
-    const response = await api.post('/auth/register', { name, email, password });
+  const register = async (name, email, password, phone) => {
+    const response = await api.post('/auth/register', { name, email, password, phone });
     const { token, user: newUser } = response.data;
 
     await AsyncStorage.setItem('token', token);
