@@ -2,7 +2,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Permanent deployed backend URL - works from any network, anywhere.
-const BASE_URL = 'http://10.129.136.173:5000/api';
+const BASE_URL = 'https://hotel-management-system-di9f.onrender.com/api';
 
 const api = axios.create({
   baseURL: BASE_URL,
