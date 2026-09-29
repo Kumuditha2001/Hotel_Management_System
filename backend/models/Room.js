@@ -10,13 +10,26 @@ const roomSchema = new mongoose.Schema(
     },
     roomType: {
       type: String,
-      enum: ['Single', 'Double', 'Triple'],
+      enum: [
+        'Single',
+        'Double',
+        'Triple',
+        'Deluxe',
+        'Executive Suite',
+        'Suite',
+        'Presidential Suite',
+        'Family Suite',
+        'Standard',
+      ],
       required: [true, 'Room type is required'],
+    },
+    pricePerNight: {
+      type: Number,
+      min: [0, 'Price per night cannot be negative'],
     },
     pricePerMonth: {
       type: Number,
-      required: [true, 'Price is required'],
-      min: [0, 'Price cannot be negative'],
+      min: [0, 'Price per month cannot be negative'],
     },
     capacity: {
       type: Number,
@@ -33,17 +46,39 @@ const roomSchema = new mongoose.Schema(
       trim: true,
       default: '',
     },
+    amenities: {
+      type: [String],
+      default: ['High-speed Wi-Fi', 'Air Conditioning', 'Flat-screen Smart TV', 'Luxury Toiletries', 'Room Service'],
+    },
     images: {
-      type: [String], // array of Cloudinary URLs, supports multiple photos per room
+      type: [String], // array of hosted image URLs
       default: [],
     },
     availabilityStatus: {
       type: String,
-      enum: ['Available', 'Full', 'Unavailable'],
+      enum: ['Available', 'Full', 'Unavailable', 'Maintenance'],
       default: 'Available',
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  }
 );
+
+// Virtual for single image compatibility
+roomSchema.virtual('image').get(function () {
+  return this.images && this.images.length > 0 ? this.images[0] : '';
+});
+
+// Pre-save hook to ensure pricePerNight & pricePerMonth stay synchronized
+roomSchema.pre('save', function () {
+  if (this.pricePerNight && !this.pricePerMonth) {
+    this.pricePerMonth = this.pricePerNight * 30;
+  } else if (this.pricePerMonth && !this.pricePerNight) {
+    this.pricePerNight = Math.round(this.pricePerMonth / 30);
+  }
+});
 
 module.exports = mongoose.model('Room', roomSchema);

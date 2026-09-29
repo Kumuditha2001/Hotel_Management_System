@@ -8,6 +8,7 @@ const {
   deleteRoom,
   uploadRoomImages,
   deleteRoomImage,
+  uploadSingleImage,
 } = require('../controllers/roomController');
 const { protect, adminOnly } = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
@@ -17,6 +18,9 @@ router.get('/', getRooms);
 
 // GET /api/rooms/:id - view single room (public)
 router.get('/:id', getRoomById);
+
+// POST /api/rooms/upload-image - standalone upload to Cloudinary (admin only)
+router.post('/upload-image', protect, adminOnly, upload.single('image'), uploadSingleImage);
 
 // POST /api/rooms - create room (admin only)
 router.post('/', protect, adminOnly, createRoom);

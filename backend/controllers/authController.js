@@ -12,7 +12,7 @@ const generateToken = (id) => {
 // @access  Public
 const registerUser = async (req, res, next) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, phone } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ success: false, message: 'Name, email and password are required' });
@@ -23,11 +23,16 @@ const registerUser = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'An account with this email already exists' });
     }
 
+    let assignedRole = 'guest';
+    if (role === 'admin') assignedRole = 'admin';
+    else if (role === 'staff') assignedRole = 'staff';
+
     const user = await User.create({
       name,
       email,
       password,
-      role: role === 'admin' ? 'admin' : 'student',
+      role: assignedRole,
+      phone: phone || '',
     });
 
     const token = generateToken(user._id);
@@ -40,6 +45,7 @@ const registerUser = async (req, res, next) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        phone: user.phone,
         role: user.role,
       },
     });
@@ -72,6 +78,9 @@ const loginUser = async (req, res, next) => {
 
     const token = generateToken(user._id);
 
+    // If existing user role was 'student', normalize it
+    const effectiveRole = user.role === 'student' ? 'guest' : user.role;
+
     res.status(200).json({
       success: true,
       message: 'Login successful',
@@ -80,7 +89,8 @@ const loginUser = async (req, res, next) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role,
+        phone: user.phone || '',
+        role: effectiveRole,
       },
     });
   } catch (error) {

@@ -18,16 +18,40 @@ const bookingSchema = new mongoose.Schema(
     },
     startDate: {
       type: Date,
-      required: [true, 'Start date is required'],
+      required: [true, 'Start date / Check-in is required'],
     },
     endDate: {
       type: Date,
-      required: [true, 'End date is required'],
+      required: [true, 'End date / Check-out is required'],
+    },
+    nights: {
+      type: Number,
+      default: 1,
+      min: 1,
+    },
+    guests: {
+      type: Number,
+      default: 1,
+      min: 1,
+    },
+    totalPrice: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    specialRequests: {
+      type: String,
+      trim: true,
+      default: '',
     },
     status: {
       type: String,
-      enum: ['Pending', 'Approved', 'Rejected'],
+      enum: ['Pending', 'Approved', 'Rejected', 'Cancelled', 'Completed'],
       default: 'Pending',
+    },
+    cancellationReason: {
+      type: String,
+      default: '',
     },
   },
   { timestamps: true }

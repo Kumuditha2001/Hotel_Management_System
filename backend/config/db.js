@@ -1,4 +1,8 @@
 const mongoose = require('mongoose');
+const dns = require('node:dns');
+
+// Fix for Windows / ISP DNS failing to resolve MongoDB SRV records
+dns.setServers(['8.8.8.8', '8.8.4.4']);
 
 const connectDB = async () => {
   try {

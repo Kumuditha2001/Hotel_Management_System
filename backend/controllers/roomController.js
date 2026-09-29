@@ -5,12 +5,25 @@ const Room = require('../models/Room');
 // @desc    Create a new room
 const createRoom = async (req, res, next) => {
   try {
-    const { roomNumber, roomType, pricePerMonth, capacity, description } = req.body;
+    const {
+      roomNumber,
+      roomType,
+      pricePerNight,
+      pricePerMonth,
+      capacity,
+      description,
+      amenities,
+      images,
+      image,
+    } = req.body;
 
-    if (!roomNumber || !roomType || !pricePerMonth || !capacity) {
+    const nightlyPrice = pricePerNight || (pricePerMonth ? Math.round(pricePerMonth / 30) : 0);
+    const monthlyPrice = pricePerMonth || (pricePerNight ? pricePerNight * 30 : 0);
+
+    if (!roomNumber || !roomType || (!pricePerNight && !pricePerMonth) || !capacity) {
       return res.status(400).json({
         success: false,
-        message: 'roomNumber, roomType, pricePerMonth and capacity are required',
+        message: 'roomNumber, roomType, price (per night or month) and capacity are required',
       });
     }
 
@@ -19,12 +32,21 @@ const createRoom = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'A room with this number already exists' });
     }
 
+    // Combine any images provided
+    let roomImages = Array.isArray(images) ? [...images] : [];
+    if (image && !roomImages.includes(image)) {
+      roomImages.unshift(image);
+    }
+
     const room = await Room.create({
       roomNumber,
       roomType,
-      pricePerMonth,
+      pricePerNight: nightlyPrice,
+      pricePerMonth: monthlyPrice,
       capacity,
-      description,
+      description: description || '',
+      amenities: Array.isArray(amenities) ? amenities : undefined,
+      images: roomImages,
     });
 
     res.status(201).json({ success: true, message: 'Room created successfully', room });
@@ -73,6 +95,21 @@ const updateRoom = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Room not found' });
     }
 
+    // Synchronize prices if one is updated
+    if (req.body.pricePerNight && !req.body.pricePerMonth) {
+      req.body.pricePerMonth = req.body.pricePerNight * 30;
+    } else if (req.body.pricePerMonth && !req.body.pricePerNight) {
+      req.body.pricePerNight = Math.round(req.body.pricePerMonth / 30);
+    }
+
+    // If a single image URL was supplied, make sure it is in images array
+    if (req.body.image) {
+      const currentImages = req.body.images || room.images || [];
+      if (!currentImages.includes(req.body.image)) {
+        req.body.images = [req.body.image, ...currentImages];
+      }
+    }
+
     const updatedRoom = await Room.findByIdAndUpdate(
       req.params.id,
       { $set: req.body },
@@ -118,8 +155,6 @@ const uploadRoomImages = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Room not found' });
     }
 
-    // Cloudinary's storage engine already uploaded each file; req.files gives us the
-    // permanent hosted URL for each one on the .path property
     const newImageUrls = req.files.map((file) => file.path);
 
     room.images = [...room.images, ...newImageUrls];
@@ -155,6 +190,25 @@ const deleteRoomImage = async (req, res, next) => {
   }
 };
 
+// @route   POST /api/rooms/upload-image
+// @access  Private/Admin
+// @desc    Upload a single image to Cloudinary and return the hosted URL
+const uploadSingleImage = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No image file uploaded' });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Image uploaded successfully to Cloudinary',
+      url: req.file.path,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createRoom,
   getRooms,
@@ -163,4 +217,5 @@ module.exports = {
   deleteRoom,
   uploadRoomImages,
   deleteRoomImage,
+  uploadSingleImage,
 };
