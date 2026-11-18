@@ -15,14 +15,14 @@ const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
     folder: 'hotel-management-rooms', // organizes uploads into a folder on Cloudinary
-    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],//image upload validations
     transformation: [{ width: 1000, height: 750, crop: 'limit' }], // auto-resize large images
   },
 });
 
 const upload = multer({
   storage,
-  limits: { fileSize: 15 * 1024 * 1024 }, // 15MB max
+  limits: { fileSize: 15 * 1024 * 1024 }, // 15MB max validation
 });
 
 module.exports = upload;
